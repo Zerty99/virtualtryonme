@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
 
 export async function POST(request: NextRequest) {
   let userPhoto: File | null = null;
@@ -101,22 +100,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error generating outfit:', error)
     console.error('Error stack:', (error as Error).stack)
-    
-    // Записываем ошибку в файл для отладки
-    const errorLog = {
-      timestamp: new Date().toISOString(),
-      error: (error as Error).message,
-      stack: (error as Error).stack,
-      userPhotoReceived: !!userPhoto,
-      userPhotoSize: userPhoto?.size,
-      clothingPhotosCount: clothingPhotos.length
-    }
-    
-    try {
-      fs.appendFileSync('debug.log', JSON.stringify(errorLog, null, 2) + '\n')
-    } catch (writeError) {
-      console.error('Failed to write debug log:', writeError)
-    }
     
     return NextResponse.json({
       success: false,
