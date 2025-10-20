@@ -1,0 +1,40 @@
+{
+  "name": "virtual-try-on-me",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.11.0",
+    "@prisma/client": "^6.17.1",
+    "bcryptjs": "^3.0.2",
+    "form-data": "^4.0.4",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.546.0",
+    "next": "^14.0.0",
+    "next-auth": "^4.24.11",
+    "node-fetch": "^3.3.2",
+    "prisma": "^6.17.1",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-dropzone": "^14.3.8",
+    "react-hot-toast": "^2.6.0",
+    "sharp": "^0.34.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "autoprefixer": "^10.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0",
+    "postcss": "^8.0.0",
+    "tailwindcss": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
