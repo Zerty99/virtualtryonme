@@ -2,11 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, Sparkles, User, Shirt, Download, RefreshCw, Trash2, Star, MoreVertical, LogIn, UserPlus } from 'lucide-react'
+import { Upload, Sparkles, User, Shirt, Download, RefreshCw, Trash2, Star, MoreVertical } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
-import { useSession, signIn, signOut } from 'next-auth/react'
-import Link from 'next/link'
 
 interface GeneratedImage {
   id: string
@@ -16,7 +14,6 @@ interface GeneratedImage {
 }
 
 export default function Home() {
-  const { data: session, status } = useSession()
   const [userPhoto, setUserPhoto] = useState<File | null>(null)
   const [clothingPhotos, setClothingPhotos] = useState<File[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -341,53 +338,6 @@ export default function Home() {
           <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8">
             {t('header_description')}
           </p>
-          
-          {/* Auth Buttons */}
-          <div className="flex justify-center gap-4 mb-8">
-            {status === 'loading' ? (
-              <div className="flex gap-4">
-                <div className="w-32 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-                <div className="w-32 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-              </div>
-            ) : session ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-gray-700">
-                  {session.user?.image && (
-                    <img 
-                      src={session.user.image} 
-                      alt="Profile" 
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <span className="font-medium">Привет, {session.user?.name}!</span>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Выйти
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <Link
-                  href="/auth/signin"
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Войти
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Регистрация
-                </Link>
-              </div>
-            )}
-          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
