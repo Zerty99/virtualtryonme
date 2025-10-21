@@ -75,17 +75,18 @@ export default function App() {
     }
   }, [isGenerating]);
 
-  const compressImage = async (uri: string, quality: number = 0.8): Promise<string> => {
+  const compressImage = async (uri: string): Promise<string> => {
     try {
-      const compressedUri = await FileSystem.getInfoAsync(uri);
-      if (compressedUri.exists) {
-        // Для простоты возвращаем оригинальный URI
-        // В реальном приложении здесь можно добавить сжатие
+      // Проверяем существование файла
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (fileInfo.exists) {
+        // Возвращаем оригинальный URI без дополнительного сжатия
+        // Качество уже установлено в ImagePicker (0.8)
         return uri;
       }
       return uri;
     } catch (error) {
-      console.error('Ошибка сжатия изображения:', error);
+      console.error('Ошибка обработки изображения:', error);
       return uri;
     }
   };
@@ -100,8 +101,7 @@ export default function App() {
       
       const res = await ImagePicker.launchImageLibraryAsync({ 
         mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
         quality: 0.8,
         base64: false
       });
@@ -132,8 +132,7 @@ export default function App() {
       
       const res = await ImagePicker.launchImageLibraryAsync({ 
         mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
         quality: 0.8,
         base64: false
       });

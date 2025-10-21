@@ -275,6 +275,11 @@ export default function Home() {
 
 
   const generateOutfit = async () => {
+    console.log('=== GENERATION DEBUG ===')
+    console.log('userPhoto:', !!userPhoto, userPhoto?.name, userPhoto?.size)
+    console.log('clothingPhotos:', clothingPhotos.length, clothingPhotos.map(p => ({ name: p.name, size: p.size })))
+    console.log('selectedScene:', selectedScene)
+    
     if (!userPhoto) {
       toast.error(t('toast_need_user'))
       return
@@ -329,6 +334,11 @@ export default function Home() {
         }
         setGeneratedImages(prev => [newImage, ...prev])
         toast.success(t('toast_generated'))
+        
+        console.log('=== AFTER GENERATION ===')
+        console.log('userPhoto after:', !!userPhoto, userPhoto?.name)
+        console.log('clothingPhotos after:', clothingPhotos.length)
+        console.log('selectedScene after:', selectedScene)
         
         // Отслеживаем успешную генерацию
         await trackEvent('generation_success', {
