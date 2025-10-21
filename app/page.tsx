@@ -307,9 +307,6 @@ export default function Home() {
       
       if (selectedScene) {
         formData.append('scene', selectedScene)
-        console.log('Adding scene to formData:', selectedScene)
-      } else {
-        console.log('No scene selected')
       }
 
       const response = await fetch('/api/generate-outfit', {

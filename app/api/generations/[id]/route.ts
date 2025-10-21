@@ -3,7 +3,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/database'
 
-export async function PUT(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -17,7 +20,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { generationId, quality, feedback, isPublic } = body
+    const { quality, feedback, isPublic } = body
+    const generationId = params.id
 
     if (!generationId) {
       return NextResponse.json(
@@ -26,11 +30,10 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Проверяем, что генерация принадлежит пользователю
+    // Проверяем, что генерация существует
     const existingGeneration = await prisma.generation.findFirst({
       where: {
         id: generationId,
-        userId: session.user.id,
       },
     })
 
@@ -73,7 +76,10 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -86,8 +92,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const generationId = searchParams.get('id')
+    const generationId = params.id
 
     if (!generationId) {
       return NextResponse.json(
@@ -96,11 +101,10 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Проверяем, что генерация принадлежит пользователю
+    // Проверяем, что генерация существует
     const existingGeneration = await prisma.generation.findFirst({
       where: {
         id: generationId,
-        userId: session.user.id,
       },
     })
 
