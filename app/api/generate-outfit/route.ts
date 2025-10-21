@@ -156,8 +156,25 @@ export async function POST(request: NextRequest) {
       const session = await getServerSession(authOptions)
       console.log('Session for saving:', !!session, session?.user?.id, session?.user?.email)
       
-      // Используем ID пользователя или создаем временный ID для неавторизованных
-      const userId = session?.user?.id || 'anonymous-user'
+      let userId: string
+      
+      if (session?.user?.id) {
+        // Используем ID авторизованного пользователя
+        userId = session.user.id
+      } else {
+        // Создаем или находим анонимного пользователя
+        const anonymousUser = await prisma.user.upsert({
+          where: { email: 'anonymous@example.com' },
+          update: {},
+          create: {
+            email: 'anonymous@example.com',
+            name: 'Anonymous User',
+            image: null,
+          },
+        })
+        userId = anonymousUser.id
+        console.log('Using anonymous user ID:', userId)
+      }
       
       const clothingPhotosData = await Promise.all(
         clothingPhotos.map(async (photo) => ({
