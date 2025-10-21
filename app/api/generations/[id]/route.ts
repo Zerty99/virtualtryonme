@@ -11,6 +11,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Проверяем доступ только для определенного email
+    if (session.user.email !== 'ronama9949@gmail.com') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { generationId, quality, feedback, isPublic } = body
 
@@ -74,6 +79,11 @@ export async function DELETE(request: NextRequest) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Проверяем доступ только для определенного email
+    if (session.user.email !== 'ronama9949@gmail.com') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
