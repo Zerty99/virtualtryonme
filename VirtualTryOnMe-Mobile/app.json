@@ -33,7 +33,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiBase": "http://10.0.2.2:3000",
+      "apiBase": "https://virtualtryonme-gpwcs3l5i-zerty99s-projects.vercel.app",
       "eas": {
         "projectId": "ed9364e4-33c5-4ede-8a02-7196b4cf5d7c"
       }

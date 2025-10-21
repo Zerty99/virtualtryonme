@@ -1,41 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { removeBackgroundWithFallback } from '@/lib/image-processing'
 
 export async function POST(request: NextRequest) {
   let userPhoto: File | null = null;
   let clothingPhotos: File[] = [];
+  let scene: string = '';
   
   try {
     console.log('API Key available:', !!process.env.GOOGLE_API_KEY)
     console.log('API Key length:', process.env.GOOGLE_API_KEY?.length || 0)
     
-    const formData = await request.formData()
-    const fd = formData as any
+    const contentType = request.headers.get('content-type') || '';
     
-    userPhoto = fd.get('userPhoto') as File
-    const scene = fd.get('scene') as string
-    
-    console.log('=== FORM DATA DEBUG ===')
-    console.log('User photo received:', !!userPhoto)
-    console.log('User photo name:', userPhoto?.name)
-    console.log('User photo size:', userPhoto?.size)
-    console.log('User photo type:', userPhoto?.type)
-    
-    // Проверяем все поля формы
-    console.log('All form data keys:', Array.from(fd.keys()))
-    ;(Array.from(fd.entries()) as [string, any][]).forEach(([key, value]) => {
-      if (value instanceof File) {
-        console.log(`Form field ${key}: File ${value.name}, size ${value.size}, type ${value.type}`)
-      } else {
-        console.log(`Form field ${key}: ${value}`)
+    if (contentType.includes('application/json')) {
+      // Обработка JSON запроса (от мобильного приложения)
+      console.log('=== JSON REQUEST DEBUG ===')
+      const jsonData = await request.json()
+      console.log('JSON data received:', !!jsonData)
+      console.log('User photo data:', !!jsonData.userPhoto)
+      console.log('Clothing photos count:', jsonData.clothingPhotos?.length || 0)
+      console.log('Scene:', jsonData.scene)
+      
+      // Конвертируем base64 в Buffer для совместимости с существующим кодом
+      if (jsonData.userPhoto?.data) {
+        const userBuffer = Buffer.from(jsonData.userPhoto.data, 'base64')
+        userPhoto = new File([userBuffer], jsonData.userPhoto.name || 'user.jpg', { type: jsonData.userPhoto.mime || 'image/jpeg' })
       }
-    })
-    
-    // Получаем все фото одежды
-    clothingPhotos = []
-    for (let i = 0; i < 3; i++) {
-      const photo = fd.get(`clothingPhoto${i}`) as File
-      if (photo) {
-        clothingPhotos.push(photo)
+      
+      if (jsonData.clothingPhotos) {
+        clothingPhotos = jsonData.clothingPhotos.map((item: any, index: number) => {
+          const buffer = Buffer.from(item.data, 'base64')
+          return new File([buffer], item.name || `cloth_${index}.jpg`, { type: item.mime || 'image/jpeg' })
+        })
+      }
+      
+      scene = jsonData.scene || ''
+      
+    } else {
+      // Обработка FormData запроса (от веб-приложения)
+      console.log('=== FORM DATA DEBUG ===')
+      console.log('Content-Type:', contentType)
+      
+      // Проверяем, что Content-Type поддерживает FormData
+      if (!contentType.includes('multipart/form-data') && !contentType.includes('application/x-www-form-urlencoded')) {
+        console.error('Unsupported Content-Type for FormData:', contentType)
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Unsupported Content-Type. Expected multipart/form-data or application/x-www-form-urlencoded' 
+        })
+      }
+      
+      const formData = await request.formData()
+      const fd = formData as any
+      
+      userPhoto = fd.get('userPhoto') as File
+      scene = fd.get('scene') as string
+      
+      console.log('User photo received:', !!userPhoto)
+      console.log('User photo name:', userPhoto?.name)
+      console.log('User photo size:', userPhoto?.size)
+      console.log('User photo type:', userPhoto?.type)
+      
+      // Проверяем все поля формы
+      console.log('All form data keys:', Array.from(fd.keys()))
+      ;(Array.from(fd.entries()) as [string, any][]).forEach(([key, value]) => {
+        if (value instanceof File) {
+          console.log(`Form field ${key}: File ${value.name}, size ${value.size}, type ${value.type}`)
+        } else {
+          console.log(`Form field ${key}: ${value}`)
+        }
+      })
+      
+      // Получаем все фото одежды
+      clothingPhotos = []
+      for (let i = 0; i < 3; i++) {
+        const photo = fd.get(`clothingPhoto${i}`) as File
+        if (photo) {
+          clothingPhotos.push(photo)
+        }
       }
     }
 
@@ -48,10 +90,23 @@ export async function POST(request: NextRequest) {
     console.log('User photo buffer size:', userPhotoBuffer.length)
     console.log('User photo first 50 bytes:', userPhotoBuffer.slice(0, 50))
 
+    // Обрабатываем изображение человека - удаляем фон
+    console.log('Starting background removal for user photo...')
+    const backgroundRemovalResult = await removeBackgroundWithFallback(userPhotoBuffer)
+    
+    let processedUserPhotoBuffer: Buffer = userPhotoBuffer
+    if (backgroundRemovalResult.success && backgroundRemovalResult.processedImageBuffer) {
+      processedUserPhotoBuffer = Buffer.from(backgroundRemovalResult.processedImageBuffer)
+      console.log(`Background removal successful using ${backgroundRemovalResult.service}`)
+      console.log('Processed user photo buffer size:', processedUserPhotoBuffer.length)
+    } else {
+      console.warn('Background removal failed, using original image:', backgroundRemovalResult.error)
+    }
+
     // clothingUrl удалён, описание больше не нужно
 
     // Формируем промпт для ИИ
-    const basePrompt = `try these clothes on me`
+    const basePrompt = `try these clothes on me. The person in the image has a transparent background - please maintain the person's pose and appearance while applying the clothing items naturally.`
     
     const scenePrompts = {
       office: ', in a modern office environment, professional setting, corporate atmosphere',
@@ -82,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     // Вызываем генерацию
     console.log('Calling generateMockImage with prompt:', finalPrompt)
-    const result = await generateMockImage(userPhotoBuffer, finalPrompt, processedClothingPhotos)
+    const result = await generateMockImage(processedUserPhotoBuffer, finalPrompt, processedClothingPhotos)
     console.log('Generated image URL:', result.imageUrl.substring(0, 100) + '...')
 
     console.log('=== SUCCESS ===')

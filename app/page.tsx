@@ -2,9 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, Sparkles, User, Shirt, Download, RefreshCw, Trash2, Star, MoreVertical } from 'lucide-react'
+import { Upload, Sparkles, User, Shirt, Download, RefreshCw, Trash2, Star, MoreVertical, BarChart3 } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
+import Stats from './components/Stats'
+import Navbar from './components/Navbar'
+import { useSession, signIn } from 'next-auth/react'
 
 interface GeneratedImage {
   id: string
@@ -20,6 +23,9 @@ export default function Home() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([])
   const [selectedScene, setSelectedScene] = useState('')
   const [lang, setLang] = useState<'uk' | 'pl' | 'de' | 'en'>('en')
+  const [showStats, setShowStats] = useState(false)
+  
+  const { data: session, status } = useSession()
 
   // Simple i18n dictionary
   const translations: Record<string, Record<string, string>> = {
@@ -58,7 +64,9 @@ export default function Home() {
       toast_generated: 'Образ згенеровано за допомогою Gemini AI!',
       toast_api_error: 'Помилка генерації образу: ',
       toast_error: 'Помилка під час генерації образу',
-      delete_photo: 'Видалити фото'
+      delete_photo: 'Видалити фото',
+      stats_title: 'Статистика',
+      stats_button: 'Статистика'
     },
     pl: {
       header_description: 'VirtualTryOnMe — platforma wirtualnej przymierzalni łącząca technologię i modę. Prześlij zdjęcie, przymierz i kupuj to, co naprawdę do Ciebie pasuje.',
@@ -95,7 +103,9 @@ export default function Home() {
       toast_generated: 'Stylizacja wygenerowana przez Gemini AI!',
       toast_api_error: 'Błąd generowania stylizacji: ',
       toast_error: 'Błąd podczas generowania stylizacji',
-      delete_photo: 'Usuń zdjęcie'
+      delete_photo: 'Usuń zdjęcie',
+      stats_title: 'Statystyki',
+      stats_button: 'Statystyki'
     },
     de: {
       header_description: 'VirtualTryOnMe — Plattform für virtuelle Anproben, die Technologie und Mode verbindet. Lade ein Foto hoch, probiere an und kaufe, was dir wirklich steht.',
@@ -132,7 +142,9 @@ export default function Home() {
       toast_generated: 'Look mit Gemini AI generiert!',
       toast_api_error: 'Fehler beim Generieren des Looks: ',
       toast_error: 'Fehler beim Generieren des Looks',
-      delete_photo: 'Foto löschen'
+      delete_photo: 'Foto löschen',
+      stats_title: 'Statistiken',
+      stats_button: 'Statistiken'
     },
     en: {
       header_description: 'VirtualTryOnMe — a virtual try-on platform that blends technology and fashion. Upload a photo, try on, and buy what truly suits you.',
@@ -169,7 +181,9 @@ export default function Home() {
       toast_generated: 'Outfit generated with Gemini AI!',
       toast_api_error: 'Outfit generation error: ',
       toast_error: 'Error generating outfit',
-      delete_photo: 'Remove photo'
+      delete_photo: 'Remove photo',
+      stats_title: 'Statistics',
+      stats_button: 'Statistics'
     }
   }
 
@@ -179,11 +193,29 @@ export default function Home() {
     return Object.keys(vars).reduce((acc, k) => acc.replace(`{${k}}`, String(vars[k])), template)
   }
 
+  // Функция для отправки событий статистики
+  const trackEvent = async (event: string, data: any = {}) => {
+    try {
+      await fetch('/api/stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ event, data })
+      })
+    } catch (error) {
+      console.error('Failed to track event:', error)
+    }
+  }
+
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('lang') : null
     if (saved === 'uk' || saved === 'pl' || saved === 'de' || saved === 'en') {
       setLang(saved)
     }
+    
+    // Отслеживаем посещение пользователя
+    trackEvent('user_visit', { language: lang })
   }, [])
 
   useEffect(() => {
@@ -243,6 +275,15 @@ export default function Home() {
 
     try {
       setIsGenerating(true)
+      const startTime = Date.now()
+      
+      // Отслеживаем начало генерации
+      await trackEvent('generation_started', {
+        scene: selectedScene,
+        language: lang,
+        clothingCount: clothingPhotos.length,
+        startTime
+      })
       
       const formData = new FormData()
       formData.append('userPhoto', userPhoto)
@@ -264,6 +305,8 @@ export default function Home() {
       const data = await response.json()
       console.log('API Response:', data)
       
+      const generationTime = Date.now() - startTime
+      
       if (data.success) {
         console.log('Success! Image URL:', data.imageUrl)
         const newImage: GeneratedImage = {
@@ -274,12 +317,34 @@ export default function Home() {
         }
         setGeneratedImages(prev => [newImage, ...prev])
         toast.success(t('toast_generated'))
+        
+        // Отслеживаем успешную генерацию
+        await trackEvent('generation_success', {
+          generationTime,
+          scene: selectedScene,
+          language: lang
+        })
       } else {
         console.error('API Error:', data.error)
         toast.error(t('toast_api_error') + data.error)
+        
+        // Отслеживаем неудачную генерацию
+        await trackEvent('generation_failed', {
+          generationTime,
+          scene: selectedScene,
+          language: lang,
+          error: data.error
+        })
       }
     } catch (error) {
       toast.error(t('toast_error'))
+      
+      // Отслеживаем ошибку генерации
+      await trackEvent('generation_failed', {
+        scene: selectedScene,
+        language: lang,
+        error: 'Network or client error'
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -293,7 +358,9 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <>
+      {/* <Navbar /> */}
+      <main className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
@@ -309,8 +376,37 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          {/* Language Selector */}
-          <div className="flex justify-end mb-4">
+          {/* Language Selector and Auth */}
+          <div className="flex justify-end mb-4 space-x-3">
+            <a
+              href="/test-auth"
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2"
+            >
+              <User className="w-4 h-4" />
+              <span>Тест Auth</span>
+            </a>
+            {!session && (
+              <button
+                onClick={() => signIn('google', { callbackUrl: '/' })}
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span>Войти через Google</span>
+              </button>
+            )}
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="px-3 py-2 bg-white/70 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-white/90 transition-colors flex items-center space-x-2"
+              title={t('stats_title')}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>{t('stats_button')}</span>
+            </button>
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value as any)}
@@ -335,12 +431,36 @@ export default function Home() {
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-6">
             VirtualTryOnMe
           </h1>
+          {session && session.user && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mb-4"
+            >
+              <p className="text-lg text-gray-600">
+                Добро пожаловать, <span className="font-semibold text-blue-600">{session.user.name || session.user.email}</span>! 👋
+              </p>
+            </motion.div>
+          )}
           <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8">
             {t('header_description')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Statistics Section */}
+          {showStats && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="lg:col-span-2"
+            >
+              <Stats lang={lang} />
+            </motion.div>
+          )}
+
           {/* Input Section */}
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -363,13 +483,35 @@ export default function Home() {
                 onClick={handleUserPhotoClick}
               >
                 <input {...onUserPhotoDrop.getInputProps()} ref={userPhotoRef} />
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">{t('drop_user')}</p>
-                <p className="text-sm text-gray-500">{t('formats_user')}</p>
-                {userPhoto && (
-                  <div className="mt-4 p-2 bg-green-100 rounded-lg">
-                    <p className="text-green-800 text-sm">✓ {userPhoto.name}</p>
+                {userPhoto ? (
+                  <div className="mt-4">
+                    <div className="relative">
+                      <img
+                        src={URL.createObjectURL(userPhoto)}
+                        alt="User photo preview"
+                        className="w-full max-w-xs mx-auto rounded-xl shadow-lg image-preview"
+                      />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setUserPhoto(null)
+                        }}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center remove-button"
+                        title={t('delete_photo')}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                      <p className="text-green-800 text-sm font-medium">✓ {userPhoto.name}</p>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">{t('drop_user')}</p>
+                    <p className="text-sm text-gray-500">{t('formats_user')}</p>
+                  </>
                 )}
               </div>
             </div>
@@ -389,29 +531,44 @@ export default function Home() {
                 onClick={handleClothingPhotoClick}
               >
                 <input {...onClothingPhotoDrop.getInputProps()} ref={clothingPhotoRef} />
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">{t('drop_clothes')}</p>
-                <p className="text-sm text-gray-500">{t('formats_clothes')}</p>
                 
-                {/* Список загруженных фото */}
-                {clothingPhotos.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {clothingPhotos.map((photo, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                        <p className="text-green-800 text-sm font-medium">✓ {photo.name}</p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeClothingPhoto(index)
-                          }}
-                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                          title={t('delete_photo')}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                {/* Предпросмотр загруженных фото */}
+                {clothingPhotos.length > 0 ? (
+                  <div className="mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 preview-grid">
+                      {clothingPhotos.map((photo, index) => (
+                        <div key={index} className="relative group preview-item">
+                          <img
+                            src={URL.createObjectURL(photo)}
+                            alt={`Clothing photo ${index + 1}`}
+                            className="w-full h-40 object-contain bg-gray-50 rounded-xl shadow-lg image-preview"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeClothingPhoto(index)
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center remove-button opacity-0 group-hover:opacity-100"
+                            title={t('delete_photo')}
+                          >
+                            ✕
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 rounded-b-xl">
+                            <p className="truncate">{photo.name}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                      <p className="text-green-800 text-sm font-medium">✓ Загружено {clothingPhotos.length} фото одежды</p>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">{t('drop_clothes')}</p>
+                    <p className="text-sm text-gray-500">{t('formats_clothes')}</p>
+                  </>
                 )}
               </div>
             </div>
@@ -526,6 +683,7 @@ export default function Home() {
           </motion.div>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   )
 }
