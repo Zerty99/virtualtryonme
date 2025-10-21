@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/database'
 import { removeBackgroundWithFallback } from '@/lib/image-processing'
 
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
     
     // Сохраняем генерацию в базу данных
     try {
-      const session = await getServerSession()
+      const session = await getServerSession(authOptions)
       if (session?.user?.id) {
         const clothingPhotosData = await Promise.all(
           clothingPhotos.map(async (photo) => ({
