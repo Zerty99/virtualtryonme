@@ -15,6 +15,10 @@ const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET
 console.log('Google ID:', process.env.GOOGLE_CLIENT_ID)
 console.log('Google Secret:', process.env.GOOGLE_CLIENT_SECRET)
 
+// Временная проверка переменных окружения
+console.log('GOOGLE_CLIENT_ID =', process.env.GOOGLE_CLIENT_ID);
+console.log('NEXTAUTH_URL =', process.env.NEXTAUTH_URL);
+
 // Debug: проверяем переменные окружения
 console.log('🔍 Environment variables check:')
 console.log('GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing')

@@ -7,7 +7,7 @@ import { useDropzone } from 'react-dropzone'
 import toast from 'react-hot-toast'
 import Stats from './components/Stats'
 import Navbar from './components/Navbar'
-import { useSession, signIn } from 'next-auth/react'
+import { useSession, signIn, signOut } from 'next-auth/react'
 
 interface GeneratedImage {
   id: string
@@ -66,7 +66,10 @@ export default function Home() {
       toast_error: 'Помилка під час генерації образу',
       delete_photo: 'Видалити фото',
       stats_title: 'Статистика',
-      stats_button: 'Статистика'
+      stats_button: 'Статистика',
+      welcome_user: 'Добро пожаловать, {name}!',
+      logout: 'Вийти',
+      signin_google: 'Увійти через Google'
     },
     pl: {
       header_description: 'VirtualTryOnMe — platforma wirtualnej przymierzalni łącząca technologię i modę. Prześlij zdjęcie, przymierz i kupuj to, co naprawdę do Ciebie pasuje.',
@@ -105,7 +108,10 @@ export default function Home() {
       toast_error: 'Błąd podczas generowania stylizacji',
       delete_photo: 'Usuń zdjęcie',
       stats_title: 'Statystyki',
-      stats_button: 'Statystyki'
+      stats_button: 'Statystyki',
+      welcome_user: 'Witaj, {name}!',
+      logout: 'Wyloguj',
+      signin_google: 'Zaloguj przez Google'
     },
     de: {
       header_description: 'VirtualTryOnMe — Plattform für virtuelle Anproben, die Technologie und Mode verbindet. Lade ein Foto hoch, probiere an und kaufe, was dir wirklich steht.',
@@ -144,7 +150,10 @@ export default function Home() {
       toast_error: 'Fehler beim Generieren des Looks',
       delete_photo: 'Foto löschen',
       stats_title: 'Statistiken',
-      stats_button: 'Statistiken'
+      stats_button: 'Statistiken',
+      welcome_user: 'Willkommen, {name}!',
+      logout: 'Abmelden',
+      signin_google: 'Mit Google anmelden'
     },
     en: {
       header_description: 'VirtualTryOnMe — a virtual try-on platform that blends technology and fashion. Upload a photo, try on, and buy what truly suits you.',
@@ -183,7 +192,10 @@ export default function Home() {
       toast_error: 'Error generating outfit',
       delete_photo: 'Remove photo',
       stats_title: 'Statistics',
-      stats_button: 'Statistics'
+      stats_button: 'Statistics',
+      welcome_user: 'Welcome, {name}!',
+      logout: 'Logout',
+      signin_google: 'Sign in with Google'
     }
   }
 
@@ -378,14 +390,20 @@ export default function Home() {
         >
           {/* Language Selector and Auth */}
           <div className="flex justify-end mb-4 space-x-3">
-            <a
-              href="/test-auth"
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2"
-            >
-              <User className="w-4 h-4" />
-              <span>Тест Auth</span>
-            </a>
-            {!session && (
+            {session && session.user ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-600">
+                  {t('welcome_user', { name: (session.user.name || session.user.email || 'User') as string })}
+                </span>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{t('logout')}</span>
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={() => signIn('google', { callbackUrl: '/' })}
                 className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2"
@@ -396,7 +414,7 @@ export default function Home() {
                   <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                <span>Войти через Google</span>
+                <span>{t('signin_google')}</span>
               </button>
             )}
             <button
@@ -431,18 +449,6 @@ export default function Home() {
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-6">
             VirtualTryOnMe
           </h1>
-          {session && session.user && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mb-4"
-            >
-              <p className="text-lg text-gray-600">
-                Добро пожаловать, <span className="font-semibold text-blue-600">{session.user.name || session.user.email}</span>! 👋
-              </p>
-            </motion.div>
-          )}
           <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mb-8">
             {t('header_description')}
           </p>

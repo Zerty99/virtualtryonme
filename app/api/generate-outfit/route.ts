@@ -1,5 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { NextRequest, NextResponse } from 'next/server'
 import { removeBackgroundWithFallback } from '@/lib/image-processing'
+
 
 export async function POST(request: NextRequest) {
   let userPhoto: File | null = null;
