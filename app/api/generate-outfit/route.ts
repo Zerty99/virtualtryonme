@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
     // Сохраняем генерацию в базу данных
     try {
       const session = await getServerSession(authOptions)
+      console.log('Session for saving:', !!session, session?.user?.id, session?.user?.email)
       if (session?.user?.id) {
         const clothingPhotosData = await Promise.all(
           clothingPhotos.map(async (photo) => ({
@@ -178,6 +179,8 @@ export async function POST(request: NextRequest) {
           },
         })
         console.log('Generation saved to database')
+      } else {
+        console.log('User not authenticated, skipping generation save')
       }
     } catch (saveError) {
       console.error('Error saving generation:', saveError)
