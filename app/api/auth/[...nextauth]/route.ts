@@ -2,6 +2,19 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/database'
+import type { NextAuthOptions } from 'next-auth'
+
+// Расширяем типы NextAuth
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+  }
+}
 
 // Проверяем переменные окружения
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
@@ -33,7 +46,7 @@ if (!NEXTAUTH_SECRET) {
   throw new Error('Missing NEXTAUTH_SECRET. Please check your .env file.')
 }
 
-const handler = NextAuth({
+const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
@@ -60,8 +73,9 @@ const handler = NextAuth({
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
   },
-})
+}
+
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
