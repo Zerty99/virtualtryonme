@@ -25,6 +25,12 @@ interface Generation {
   tokensUsed?: number
   createdAt: string
   updatedAt: string
+  user: {
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+  }
 }
 
 interface GenerationsResponse {
@@ -218,9 +224,14 @@ export default function GenerationsPage() {
                   
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {generation.scene || 'Outfit Generation'}
-                      </h3>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {generation.scene || 'Outfit Generation'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          by {generation.user.name || generation.user.email || 'Unknown User'}
+                        </p>
+                      </div>
                       <div className="flex items-center">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button

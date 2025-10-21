@@ -86,11 +86,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    // Получаем генерации пользователя
+    // Получаем все генерации
     const generations = await prisma.generation.findMany({
-      where: {
-        userId: session.user.id,
-      },
+      where: {},
       orderBy: {
         createdAt: 'desc',
       },
@@ -111,14 +109,20 @@ export async function GET(request: NextRequest) {
         tokensUsed: true,
         createdAt: true,
         updatedAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
       },
     })
 
-    // Получаем общее количество
+    // Получаем общее количество всех генераций
     const total = await prisma.generation.count({
-      where: {
-        userId: session.user.id,
-      },
+      where: {},
     })
 
     return NextResponse.json({
