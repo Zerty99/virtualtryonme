@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
       take: limit,
       select: {
         id: true,
+        userId: true,
         userPhoto: true,
         clothingPhotos: true,
         generatedImage: true,
@@ -130,6 +131,12 @@ export async function GET(request: NextRequest) {
       generations: generations.map(gen => ({
         ...gen,
         clothingPhotos: JSON.parse(gen.clothingPhotos),
+        user: gen.user || {
+          id: gen.userId,
+          name: gen.userId === 'anonymous-user' ? 'Anonymous User' : 'Unknown User',
+          email: gen.userId === 'anonymous-user' ? null : 'unknown@example.com',
+          image: null,
+        },
       })),
       pagination: {
         page,

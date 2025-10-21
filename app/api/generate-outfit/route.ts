@@ -155,33 +155,33 @@ export async function POST(request: NextRequest) {
     try {
       const session = await getServerSession(authOptions)
       console.log('Session for saving:', !!session, session?.user?.id, session?.user?.email)
-      if (session?.user?.id) {
-        const clothingPhotosData = await Promise.all(
-          clothingPhotos.map(async (photo) => ({
-            name: photo.name,
-            size: photo.size,
-            type: photo.type,
-            data: Buffer.from(await photo.arrayBuffer()).toString('base64')
-          }))
-        )
-        
-        await prisma.generation.create({
-          data: {
-            userId: session.user.id,
-            userPhoto: Buffer.from(await userPhoto.arrayBuffer()).toString('base64'),
-            clothingPhotos: JSON.stringify(clothingPhotosData),
-            generatedImage: result.imageUrl,
-            prompt: finalPrompt,
-            scene: scene || null,
-            model: result.source,
-            processingTime: Date.now() - startTime,
-            tokensUsed: null, // TODO: Add tokens tracking
-          },
-        })
-        console.log('Generation saved to database')
-      } else {
-        console.log('User not authenticated, skipping generation save')
-      }
+      
+      // Используем ID пользователя или создаем временный ID для неавторизованных
+      const userId = session?.user?.id || 'anonymous-user'
+      
+      const clothingPhotosData = await Promise.all(
+        clothingPhotos.map(async (photo) => ({
+          name: photo.name,
+          size: photo.size,
+          type: photo.type,
+          data: Buffer.from(await photo.arrayBuffer()).toString('base64')
+        }))
+      )
+      
+      await prisma.generation.create({
+        data: {
+          userId: userId,
+          userPhoto: Buffer.from(await userPhoto.arrayBuffer()).toString('base64'),
+          clothingPhotos: JSON.stringify(clothingPhotosData),
+          generatedImage: result.imageUrl,
+          prompt: finalPrompt,
+          scene: scene || null,
+          model: result.source,
+          processingTime: Date.now() - startTime,
+          tokensUsed: null, // TODO: Add tokens tracking
+        },
+      })
+      console.log('Generation saved to database for user:', userId)
     } catch (saveError) {
       console.error('Error saving generation:', saveError)
       // Не прерываем выполнение, если не удалось сохранить
