@@ -45,6 +45,7 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  generations   Generation[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -55,4 +56,36 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Generation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Исходные данные
+  userPhoto   String   // Base64 или URL исходного фото пользователя
+  clothingPhotos String // JSON строка с массивом URL фотографий одежды
+  
+  // Результат генерации
+  generatedImage String // Base64 или URL сгенерированного изображения
+  prompt        String // Промпт, использованный для генерации
+  scene         String? // Сцена/окружение
+  
+  // Метаданные
+  quality      Int?    // Оценка качества (1-5)
+  feedback     String? // Отзыв пользователя
+  isPublic     Boolean @default(false) // Публичная ли генерация
+  
+  // Техническая информация
+  model        String? // Модель ИИ (gemini, dall-e, etc.)
+  processingTime Int?  // Время обработки в миллисекундах
+  tokensUsed   Int?    // Количество токенов использовано
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isPublic])
 }

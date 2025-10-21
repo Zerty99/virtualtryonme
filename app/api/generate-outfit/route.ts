@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { prisma } from '@/lib/database'
 import { removeBackgroundWithFallback } from '@/lib/image-processing'
 
 
@@ -8,6 +10,7 @@ export async function POST(request: NextRequest) {
   let userPhoto: File | null = null;
   let clothingPhotos: File[] = [];
   let scene: string = '';
+  const startTime = Date.now();
   
   try {
     console.log('API Key available:', !!process.env.GOOGLE_API_KEY)
@@ -146,6 +149,39 @@ export async function POST(request: NextRequest) {
     console.log('=== SUCCESS ===')
     console.log('Generated image URL length:', result.imageUrl.length)
     console.log('Generated image URL preview:', result.imageUrl.substring(0, 100) + '...')
+    
+    // Сохраняем генерацию в базу данных
+    try {
+      const session = await getServerSession()
+      if (session?.user?.id) {
+        const clothingPhotosData = await Promise.all(
+          clothingPhotos.map(async (photo) => ({
+            name: photo.name,
+            size: photo.size,
+            type: photo.type,
+            data: Buffer.from(await photo.arrayBuffer()).toString('base64')
+          }))
+        )
+        
+        await prisma.generation.create({
+          data: {
+            userId: session.user.id,
+            userPhoto: Buffer.from(await userPhoto.arrayBuffer()).toString('base64'),
+            clothingPhotos: JSON.stringify(clothingPhotosData),
+            generatedImage: result.imageUrl,
+            prompt: finalPrompt,
+            scene: scene || null,
+            model: result.source,
+            processingTime: Date.now() - startTime,
+            tokensUsed: null, // TODO: Add tokens tracking
+          },
+        })
+        console.log('Generation saved to database')
+      }
+    } catch (saveError) {
+      console.error('Error saving generation:', saveError)
+      // Не прерываем выполнение, если не удалось сохранить
+    }
     
     return NextResponse.json({
       success: true,
