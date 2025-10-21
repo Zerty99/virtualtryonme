@@ -173,13 +173,13 @@ export default function GenerationsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {generations.map((generation) => (
                 <div key={generation.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="relative">
+                  <div className="relative bg-gray-100 flex items-center justify-center">
                     <Image
                       src={generation.generatedImage}
                       alt="Generated outfit"
                       width={400}
                       height={400}
-                      className="w-full h-64 object-cover"
+                      className="max-w-full max-h-64 object-contain"
                     />
                     <div className="absolute top-2 right-2 flex gap-2">
                       <button
